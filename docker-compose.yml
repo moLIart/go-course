@@ -2,7 +2,7 @@ services:
   pgdb:
     image: postgres:17.3
     ports:
-      - "5435:5432"
+      - "5666:5432"
     volumes:
       - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql
     environment:
