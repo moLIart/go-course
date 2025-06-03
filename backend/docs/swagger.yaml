@@ -1,0 +1,142 @@
+definitions:
+  handlers.errorRs:
+    properties:
+      error:
+        type: string
+    type: object
+  handlers.loginRq:
+    properties:
+      nickname:
+        type: string
+      password:
+        type: string
+    type: object
+  handlers.loginRs:
+    properties:
+      token:
+        type: string
+    type: object
+  handlers.registerRq:
+    properties:
+      nickname:
+        type: string
+      password:
+        type: string
+    type: object
+  handlers.registerRs:
+    properties:
+      token:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: API for Gomoku game
+  title: Gomoku API
+  version: "1.0"
+paths:
+  /api/v1/games/{gameId}:
+    get:
+      description: Returns the current state of the game (SSE endpoint)
+      parameters:
+      - description: Game ID
+        in: path
+        name: gameId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.errorRs'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handlers.errorRs'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.errorRs'
+      summary: Get game state
+      tags:
+      - game
+  /api/v1/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticates player and returns a JWT token
+      parameters:
+      - description: Login data
+        in: body
+        name: loginRq
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.loginRq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.loginRs'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.errorRs'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.errorRs'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.errorRs'
+      summary: Login player
+      tags:
+      - auth
+  /api/v1/register:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new player and returns a JWT token
+      parameters:
+      - description: Registration data
+        in: body
+        name: registerRq
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.registerRq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.registerRs'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.errorRs'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/handlers.errorRs'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.errorRs'
+      summary: Register new player
+      tags:
+      - auth
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

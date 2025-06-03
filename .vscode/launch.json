@@ -9,7 +9,12 @@
       "type": "go",
       "request": "launch",
       "mode": "auto",
-      "program": "${fileDirname}"
+      "program": "${workspaceFolder}/backend/cmd/main.go",
+      "args": [
+        "--jwt-secret", "ec23e6b12163c54ddf3bb814ab1a2a6b0169df44ab78d2a2daf6e6914203dc36f18454c0348689e1183202363a89614faab2e49b1ae8ef558dfb03032c489072",
+        "--db-data-source", "postgres://postgres:postgres@localhost:5666/gomoku?sslmode=disable",
+        "--server-addr", ":9090"
+      ],
     }
   ]
 }
