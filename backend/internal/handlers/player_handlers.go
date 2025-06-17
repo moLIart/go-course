@@ -5,7 +5,6 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/julienschmidt/httprouter"
 	"github.com/moLIart/gomoku-backend/internal/domain"
 	"github.com/moLIart/gomoku-backend/internal/repositories"
 	"github.com/moLIart/gomoku-backend/internal/services"
@@ -42,8 +41,8 @@ type loginRs struct {
 // @Failure      409         {object}  errorRs
 // @Failure      500         {object}  errorRs
 // @Router       /api/v1/register [post]
-func HandleRegister(uow *repositories.UnitOfWork, jwtSvc *services.JWTService) handlerClosureAlias {
-	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func HandleRegister(uow *repositories.UnitOfWork, jwtSvc *services.JWTService) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var rq registerRq
 		if err := json.NewDecoder(r.Body).Decode(&rq); err != nil {
 			writeErrorRs(w, http.StatusBadRequest, err)
@@ -74,7 +73,10 @@ func HandleRegister(uow *repositories.UnitOfWork, jwtSvc *services.JWTService) h
 			return
 		}
 
-		uow.Complete(nil)
+		if err := uow.Complete(nil); err != nil {
+			writeErrorRs(w, http.StatusInternalServerError, err)
+			return
+		}
 
 		tokenString, err := jwtSvc.Sign(player.Nickname)
 		if err != nil {
@@ -87,7 +89,7 @@ func HandleRegister(uow *repositories.UnitOfWork, jwtSvc *services.JWTService) h
 			writeErrorRs(w, http.StatusInternalServerError, err)
 			return
 		}
-	}
+	})
 }
 
 // HandleLogin аутентифицирует пользователя.
@@ -103,8 +105,8 @@ func HandleRegister(uow *repositories.UnitOfWork, jwtSvc *services.JWTService) h
 // @Failure      401      {object}  errorRs
 // @Failure      500      {object}  errorRs
 // @Router       /api/v1/login [post]
-func HandleLogin(uow *repositories.UnitOfWork, jwtSvc *services.JWTService) handlerClosureAlias {
-	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func HandleLogin(uow *repositories.UnitOfWork, jwtSvc *services.JWTService) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var rq loginRq
 		if err := json.NewDecoder(r.Body).Decode(&rq); err != nil {
 			writeErrorRs(w, http.StatusBadRequest, err)
@@ -126,12 +128,15 @@ func HandleLogin(uow *repositories.UnitOfWork, jwtSvc *services.JWTService) hand
 				return
 			}
 
-			uow.Complete(err)
+			err = uow.Complete(err)
 			writeErrorRs(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		uow.Complete(nil)
+		if err := uow.Complete(nil); err != nil {
+			writeErrorRs(w, http.StatusInternalServerError, err)
+			return
+		}
 
 		if player.Password != rq.Password {
 			writeErrorRs(w, http.StatusUnauthorized, errors.New("invalid credentials"))
@@ -149,5 +154,5 @@ func HandleLogin(uow *repositories.UnitOfWork, jwtSvc *services.JWTService) hand
 			writeErrorRs(w, http.StatusInternalServerError, err)
 			return
 		}
-	}
+	})
 }
