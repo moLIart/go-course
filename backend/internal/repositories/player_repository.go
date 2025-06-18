@@ -21,6 +21,11 @@ var (
 		VALUES ($1, $2, $3) 
 		RETURNING player_id`
 
+	sqlUpdatePlayer = `
+		UPDATE players 
+		SET nickname = $1, password = $2, score = $3
+		WHERE player_id = $4`
+
 	sqlGetPlayerByNickname = `
 		SELECT player_id, nickname, password, score 
 		FROM players 
@@ -38,12 +43,19 @@ func NewPlayerRepository(tx *sqlx.Tx) *PlayerRepository {
 // It returns an error if the player already has an existing ID,
 // if acquiring a database connection fails, or if the SQL insert operation fails.
 // On successful insertion, the player's ID is set to the newly generated value.
-func (r *PlayerRepository) Insert(player *domain.Player, ctx context.Context) error {
+func (r *PlayerRepository) Save(player *domain.Player, ctx context.Context) error {
 	if player.ID != 0 {
-		return errors.New("cannot insert player with existing ID")
+		scanner := r.tx.QueryRowxContext(ctx, sqlUpdatePlayer,
+			player.Nickname, player.Password, player.Score, player.ID)
+		if err := scanner.Scan(); err != nil {
+			return errorx.Wrap(err, "update player sql")
+		}
+
+		return nil
 	}
 
-	scanner := r.tx.QueryRowxContext(ctx, sqlInsertPlayer, player.Nickname, player.Password, player.Score)
+	scanner := r.tx.QueryRowxContext(ctx, sqlInsertPlayer,
+		player.Nickname, player.Password, player.Score)
 	if err := scanner.Scan(&player.ID); err != nil {
 		// Check if the error is a PostgreSQL unique violation error (duplicate key)
 		if pgErr, ok := err.(*pq.Error); ok && pgErr.Code == "23505" {

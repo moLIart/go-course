@@ -41,27 +41,35 @@ func main() {
 	fs.Parse(os.Args[1:])
 
 	// Setup services
+	jwtSvc := services.NewJWTService(*jwtSecret)
 	database := infra.NewDatabase(*dbDataSource)
 	uow := repositories.NewUnitOfWork(database)
-	jwtSvc := services.NewJWTService(*jwtSecret)
 
 	// Setup routing
+	stdMiddlewares := alice.New(middleware.ContentType("application/json"))
+	authMiddlewares := stdMiddlewares.Append(middleware.JWTAuth(jwtSvc))
+
 	router := httprouter.New()
 	router.Handler("GET", "/swagger/*any", handlers.SwaggerUIHandler())
 
-	router.POST("/api/v1/register", handlers.HandleRegister(uow, jwtSvc))
-	router.POST("/api/v1/login", handlers.HandleLogin(uow, jwtSvc))
+	router.Handler("POST", "/api/v1/register",
+		stdMiddlewares.Then(handlers.HandleRegister(uow, jwtSvc)))
+	router.Handler("POST", "/api/v1/login",
+		stdMiddlewares.Then(handlers.HandleLogin(uow, jwtSvc)))
 
-	router.GET("/api/v1/games/:gameId", handlers.HandleGetGameState())
-
-	routerMiddlewares := alice.New(
-		middleware.ContentType("application/json"),
-	).Then(router)
+	router.Handler("POST", "/api/v1/games/",
+		authMiddlewares.Then(handlers.HandleStartGame(uow)))
+	router.Handler("GET", "/api/v1/games/:gameId",
+		authMiddlewares.Then(handlers.HandleGetGameState(uow)))
+	router.Handler("PUT", "/api/v1/games/:gameId/move",
+		authMiddlewares.Then(handlers.HandleGameMove(uow)))
+	router.Handler("PUT", "/api/v1/games/:gameId/join",
+		authMiddlewares.Then(handlers.HandleGameJoin(uow)))
 
 	// Configure HTTP server
 	httpSrv := &http.Server{
 		Addr:    *serverAddr,
-		Handler: routerMiddlewares,
+		Handler: router,
 	}
 
 	// Set up HTTP Server graceful shutdown

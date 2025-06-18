@@ -61,7 +61,7 @@ func HandleRegister(uow *repositories.UnitOfWork, jwtSvc *services.JWTService) h
 		}
 
 		repository := uow.GetPlayerRepository()
-		if err := repository.Insert(player, r.Context()); err != nil {
+		if err := repository.Save(player, r.Context()); err != nil {
 			if errors.Is(err, domain.ErrPlayerAlreadyExists) {
 				uow.Complete(nil)
 				writeErrorRs(w, http.StatusConflict, err)
