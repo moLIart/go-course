@@ -45,9 +45,9 @@ func NewPlayerRepository(tx *sqlx.Tx) *PlayerRepository {
 // On successful insertion, the player's ID is set to the newly generated value.
 func (r *PlayerRepository) Save(player *domain.Player, ctx context.Context) error {
 	if player.ID != 0 {
-		scanner := r.tx.QueryRowxContext(ctx, sqlUpdatePlayer,
+		_, err := r.tx.ExecContext(ctx, sqlUpdatePlayer,
 			player.Nickname, player.Password, player.Score, player.ID)
-		if err := scanner.Scan(); err != nil {
+		if err != nil {
 			return errorx.Wrap(err, "update player sql")
 		}
 
