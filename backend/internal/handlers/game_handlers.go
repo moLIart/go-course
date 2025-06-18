@@ -11,16 +11,19 @@ import (
 	"github.com/moLIart/gomoku-backend/internal/repositories"
 )
 
-type startGameRq struct {
-	Type string `json:"game_type"`
-	Size int    `json:"board_size"`
-}
-
-type moveGameRq struct {
-	Row int `json:"row"`
-	Col int `json:"col"`
-}
-
+// HandleStartGame godoc
+// @Summary      Start a new game
+// @Description  Starts a new Gomoku game with the given board size and type.
+// @Tags         games
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        body  body  startGameRq  true  "Game start request"
+// @Success      200   {object}  gameStateRs
+// @Failure      400   {object}  errorRs
+// @Failure      401   {object}  errorRs
+// @Failure      500   {object}  errorRs
+// @Router       /api/v1/games/ [post]
 func HandleStartGame(uow *repositories.UnitOfWork) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var rq startGameRq
@@ -78,6 +81,19 @@ func HandleStartGame(uow *repositories.UnitOfWork) http.Handler {
 	})
 }
 
+// HandleGetGameState godoc
+// @Summary      Get game state
+// @Description  Returns the current state of the game by its ID.
+// @Tags         games
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        gameId  path  int  true  "Game ID"
+// @Success      200   {object}  gameStateRs
+// @Failure      404   {object}  errorRs
+// @Failure      401   {object}  errorRs
+// @Failure      500   {object}  errorRs
+// @Router       /api/v1/games/{gameId} [get]
 func HandleGetGameState(uow *repositories.UnitOfWork) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		params := r.Context().Value(httprouter.ParamsKey).(httprouter.Params)
@@ -121,6 +137,20 @@ func HandleGetGameState(uow *repositories.UnitOfWork) http.Handler {
 	})
 }
 
+// HandleGameJoin godoc
+// @Summary      Join a game
+// @Description  Join an existing Gomoku game by its ID.
+// @Tags         games
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        gameId  path  int  true  "Game ID"
+// @Success      200   {object}  gameStateRs
+// @Failure      400   {object}  errorRs
+// @Failure      404   {object}  errorRs
+// @Failure      401   {object}  errorRs
+// @Failure      500   {object}  errorRs
+// @Router       /api/v1/games/{gameId}/join [put]
 func HandleGameJoin(uow *repositories.UnitOfWork) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		params := r.Context().Value(httprouter.ParamsKey).(httprouter.Params)
@@ -185,6 +215,21 @@ func HandleGameJoin(uow *repositories.UnitOfWork) http.Handler {
 	})
 }
 
+// HandleGameMove godoc
+// @Summary      Make a move
+// @Description  Make a move in the game by its ID.
+// @Tags         games
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        gameId  path  int  true  "Game ID"
+// @Param        body    body  moveGameRq  true  "Move request"
+// @Success      200   {object}  gameStateRs
+// @Failure      400   {object}  errorRs
+// @Failure      404   {object}  errorRs
+// @Failure      401   {object}  errorRs
+// @Failure      500   {object}  errorRs
+// @Router       /api/v1/games/{gameId}/move [put]
 func HandleGameMove(uow *repositories.UnitOfWork) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		params := r.Context().Value(httprouter.ParamsKey).(httprouter.Params)

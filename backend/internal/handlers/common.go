@@ -25,6 +25,16 @@ func writeErrorRs(w http.ResponseWriter, code int, err error) {
 	}
 }
 
+type startGameRq struct {
+	Type string `json:"game_type"`
+	Size int    `json:"board_size"`
+}
+
+type moveGameRq struct {
+	Row int `json:"row"`
+	Col int `json:"col"`
+}
+
 type gameStateDto struct {
 	ID            int          `json:"id"`
 	Type          string       `json:"type"`
