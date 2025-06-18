@@ -19,7 +19,7 @@ import (
 // @Produce      json
 // @Security     BearerAuth
 // @Param        body  body  startGameRq  true  "Game start request"
-// @Success      200   {object}  gameStateRs
+// @Success      200   {object}  gameStateDto
 // @Failure      400   {object}  errorRs
 // @Failure      401   {object}  errorRs
 // @Failure      500   {object}  errorRs
@@ -89,7 +89,7 @@ func HandleStartGame(uow *repositories.UnitOfWork) http.Handler {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        gameId  path  int  true  "Game ID"
-// @Success      200   {object}  gameStateRs
+// @Success      200   {object}  gameStateDto
 // @Failure      404   {object}  errorRs
 // @Failure      401   {object}  errorRs
 // @Failure      500   {object}  errorRs
@@ -145,7 +145,7 @@ func HandleGetGameState(uow *repositories.UnitOfWork) http.Handler {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        gameId  path  int  true  "Game ID"
-// @Success      200   {object}  gameStateRs
+// @Success      200   {object}  gameStateDto
 // @Failure      400   {object}  errorRs
 // @Failure      404   {object}  errorRs
 // @Failure      401   {object}  errorRs
@@ -224,7 +224,7 @@ func HandleGameJoin(uow *repositories.UnitOfWork) http.Handler {
 // @Security     BearerAuth
 // @Param        gameId  path  int  true  "Game ID"
 // @Param        body    body  moveGameRq  true  "Move request"
-// @Success      200   {object}  gameStateRs
+// @Success      200   {object}  gameStateDto
 // @Failure      400   {object}  errorRs
 // @Failure      404   {object}  errorRs
 // @Failure      401   {object}  errorRs

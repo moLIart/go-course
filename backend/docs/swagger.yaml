@@ -4,6 +4,25 @@ definitions:
       error:
         type: string
     type: object
+  handlers.gameStateDto:
+    properties:
+      board:
+        items:
+          items:
+            type: integer
+          type: array
+        type: array
+      current_player:
+        type: integer
+      id:
+        type: integer
+      size:
+        type: integer
+      type:
+        type: string
+      winner:
+        type: integer
+    type: object
   handlers.loginRq:
     properties:
       nickname:
@@ -15,6 +34,13 @@ definitions:
     properties:
       token:
         type: string
+    type: object
+  handlers.moveGameRq:
+    properties:
+      col:
+        type: integer
+      row:
+        type: integer
     type: object
   handlers.registerRq:
     properties:
@@ -28,15 +54,60 @@ definitions:
       token:
         type: string
     type: object
+  handlers.startGameRq:
+    properties:
+      board_size:
+        type: integer
+      game_type:
+        type: string
+    type: object
 info:
   contact: {}
   description: API for Gomoku game
   title: Gomoku API
   version: "1.0"
 paths:
+  /api/v1/games/:
+    post:
+      consumes:
+      - application/json
+      description: Starts a new Gomoku game with the given board size and type.
+      parameters:
+      - description: Game start request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.startGameRq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.gameStateDto'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.errorRs'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.errorRs'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.errorRs'
+      security:
+      - BearerAuth: []
+      summary: Start a new game
+      tags:
+      - games
   /api/v1/games/{gameId}:
     get:
-      description: Returns the current state of the game (SSE endpoint)
+      consumes:
+      - application/json
+      description: Returns the current state of the game by its ID.
       parameters:
       - description: Game ID
         in: path
@@ -49,10 +120,9 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Bad Request
+            $ref: '#/definitions/handlers.gameStateDto'
+        "401":
+          description: Unauthorized
           schema:
             $ref: '#/definitions/handlers.errorRs'
         "404":
@@ -63,9 +133,95 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/handlers.errorRs'
+      security:
+      - BearerAuth: []
       summary: Get game state
       tags:
-      - game
+      - games
+  /api/v1/games/{gameId}/join:
+    put:
+      consumes:
+      - application/json
+      description: Join an existing Gomoku game by its ID.
+      parameters:
+      - description: Game ID
+        in: path
+        name: gameId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.gameStateDto'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.errorRs'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.errorRs'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handlers.errorRs'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.errorRs'
+      security:
+      - BearerAuth: []
+      summary: Join a game
+      tags:
+      - games
+  /api/v1/games/{gameId}/move:
+    put:
+      consumes:
+      - application/json
+      description: Make a move in the game by its ID.
+      parameters:
+      - description: Game ID
+        in: path
+        name: gameId
+        required: true
+        type: integer
+      - description: Move request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.moveGameRq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.gameStateDto'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.errorRs'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.errorRs'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handlers.errorRs'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.errorRs'
+      security:
+      - BearerAuth: []
+      summary: Make a move
+      tags:
+      - games
   /api/v1/login:
     post:
       consumes:
