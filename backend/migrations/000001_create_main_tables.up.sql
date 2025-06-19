@@ -1,6 +1,3 @@
-CREATE DATABASE "gomoku";
-\connect "gomoku"
-
 CREATE TABLE "players" (
   "player_id" SERIAL PRIMARY KEY,
   "nickname" VARCHAR(20) NOT NULL UNIQUE,

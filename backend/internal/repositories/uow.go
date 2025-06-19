@@ -21,9 +21,11 @@ func NewUnitOfWork(db *infra.Database) *UnitOfWork {
 }
 
 func (uow *UnitOfWork) GetPlayerRepository() *PlayerRepository {
-	return &PlayerRepository{
-		tx: uow.tx,
-	}
+	return NewPlayerRepository(uow.tx)
+}
+
+func (uow *UnitOfWork) GetGameRepository() *GameRepository {
+	return NewGameRepository(uow.tx)
 }
 
 func (uow *UnitOfWork) Begin(ctx context.Context) error {

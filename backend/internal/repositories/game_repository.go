@@ -9,19 +9,19 @@ import (
 	"slices"
 	"time"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/moLIart/gomoku-backend/internal/domain"
-	"github.com/moLIart/gomoku-backend/internal/infra"
 
 	_ "github.com/lib/pq"
 )
 
 type GameRepository struct {
-	db *infra.Database
+	tx *sqlx.Tx
 }
 
-func NewGameRepository(db *infra.Database) *GameRepository {
+func NewGameRepository(tx *sqlx.Tx) *GameRepository {
 	return &GameRepository{
-		db: db,
+		tx: tx,
 	}
 }
 
@@ -36,6 +36,16 @@ var (
 			LEFT JOIN players AS sp ON sp.player_id = games.second_player_id
 		WHERE game_id = $1
 		LIMIT 1`
+
+	sqlInsertGame = `
+		INSERT INTO games (type, board, current_player_id, winner_player_id, first_player_id, second_player_id, last_activity)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		RETURNING game_id`
+
+	sqlUpdateGame = `
+		UPDATE games
+		SET type = $1, board = $2, current_player_id = $3, winner_player_id = $4, first_player_id = $5, second_player_id = $6, last_activity = $7
+		WHERE game_id = $8`
 )
 
 // This struct matches the SELECT columns in sqlGetGameById
@@ -65,6 +75,22 @@ type boardDto struct {
 	Data [][]int32 `json:"data"`
 }
 
+func DtoFromBoard(b *domain.Board) boardDto {
+	dto := boardDto{
+		Size: b.Size,
+		Data: make([][]int32, b.Size),
+	}
+
+	for i := range b.Data {
+		dto.Data[i] = make([]int32, b.Size)
+		for j := range b.Data[i] {
+			dto.Data[i][j] = b.Data[i][j]
+		}
+	}
+
+	return dto
+}
+
 func (b *boardDto) Value() (driver.Value, error) {
 	j, err := json.Marshal(b)
 	return j, err
@@ -80,13 +106,8 @@ func (p *boardDto) Scan(src any) error {
 }
 
 func (r *GameRepository) GetById(id int32, ctx context.Context) (*domain.Game, error) {
-	conn, err := r.db.AcquireConn()
-	if err != nil {
-		return nil, err
-	}
-
 	var row gameWithPlayersRow
-	err = conn.
+	err := r.tx.
 		QueryRowxContext(ctx, sqlGetGameById, id).
 		StructScan(&row)
 	if err != nil {
@@ -143,4 +164,47 @@ func (r *GameRepository) GetById(id int32, ctx context.Context) (*domain.Game, e
 	}
 
 	return game, nil
+}
+
+func (r *GameRepository) Save(game *domain.Game, ctx context.Context) error {
+	boardDto := DtoFromBoard(game.Board)
+	winnerPlayerID := sql.NullInt32{}
+	if game.WinnerPlayer != nil {
+		winnerPlayerID = sql.NullInt32{Int32: game.WinnerPlayer.ID, Valid: true}
+	}
+
+	secondPlayerID := sql.NullInt32{}
+	if game.Players[1] != nil {
+		secondPlayerID = sql.NullInt32{Int32: game.Players[1].ID, Valid: true}
+	}
+
+	if game.ID != 0 {
+		// Update existing game
+		_, err := r.tx.ExecContext(ctx, sqlUpdateGame,
+			game.Type,
+			boardDto,
+			game.CurrentPlayer.ID,
+			winnerPlayerID,
+			game.Players[0].ID,
+			secondPlayerID,
+			game.LastActivity)
+		if err != nil {
+			return err
+		}
+	} else {
+		// Insert new game
+		err := r.tx.QueryRowContext(ctx, sqlInsertGame,
+			game.Type,
+			boardDto,
+			game.CurrentPlayer.ID,
+			winnerPlayerID,
+			game.Players[0].ID,
+			secondPlayerID,
+			game.LastActivity).Scan(&game.ID)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
