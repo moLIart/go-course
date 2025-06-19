@@ -39,12 +39,12 @@ var (
 
 	sqlInsertGame = `
 		INSERT INTO games (type, board, current_player_id, winner_player_id, first_player_id, second_player_id, last_activity)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		VALUES ($1, $2::jsonb, $3, $4, $5, $6, $7)
 		RETURNING game_id`
 
 	sqlUpdateGame = `
 		UPDATE games
-		SET type = $1, board = $2, current_player_id = $3, winner_player_id = $4, first_player_id = $5, second_player_id = $6, last_activity = $7
+		SET type = $1, board = $2::jsonb, current_player_id = $3, winner_player_id = $4, first_player_id = $5, second_player_id = $6, last_activity = $7
 		WHERE game_id = $8`
 )
 
@@ -83,9 +83,7 @@ func DtoFromBoard(b *domain.Board) boardDto {
 
 	for i := range b.Data {
 		dto.Data[i] = make([]int32, b.Size)
-		for j := range b.Data[i] {
-			dto.Data[i][j] = b.Data[i][j]
-		}
+		copy(dto.Data[i], b.Data[i])
 	}
 
 	return dto
@@ -178,16 +176,22 @@ func (r *GameRepository) Save(game *domain.Game, ctx context.Context) error {
 		secondPlayerID = sql.NullInt32{Int32: game.Players[1].ID, Valid: true}
 	}
 
+	boardJson, err := json.Marshal(boardDto)
+	if err != nil {
+		return err
+	}
+
 	if game.ID != 0 {
 		// Update existing game
 		_, err := r.tx.ExecContext(ctx, sqlUpdateGame,
 			game.Type,
-			boardDto,
+			boardJson,
 			game.CurrentPlayer.ID,
 			winnerPlayerID,
 			game.Players[0].ID,
 			secondPlayerID,
-			game.LastActivity)
+			game.LastActivity,
+			game.ID)
 		if err != nil {
 			return err
 		}
@@ -195,7 +199,7 @@ func (r *GameRepository) Save(game *domain.Game, ctx context.Context) error {
 		// Insert new game
 		err := r.tx.QueryRowContext(ctx, sqlInsertGame,
 			game.Type,
-			boardDto,
+			boardJson,
 			game.CurrentPlayer.ID,
 			winnerPlayerID,
 			game.Players[0].ID,
